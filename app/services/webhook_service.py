@@ -1,8 +1,12 @@
 import logging
 import json
+from datetime import datetime
 from sqlalchemy import select, update
 from app.db.session import AsyncSessionLocal
 from app.db.models import Tenant, Message
+from app.services.storage_service import StorageService
+from app.services.meta_client import MetaClient
+from app.core.utils import AsyncIteratorToFileLike
 
 logger = logging.getLogger(__name__)
 
@@ -54,23 +58,69 @@ class WebhookService:
 
                 # Process Messages
                 if "messages" in value:
+                    storage_service = StorageService()
+                    
                     for msg in value["messages"]:
                         wamid = msg.get("id")
                         from_number = msg.get("from")
                         msg_type = msg.get("type")
                         
                         content = None
-                        if msg_type == "text":
-                            content = msg.get("text", {}).get("body")
-                        else:
-                            # Store JSON for other types
-                            content = json.dumps(msg)
+                        media_url = None
+                        media_type = None
+                        caption = None
+                        meta_media_id = None
+                        reply_to_wamid = None
+                        
+                        # Extract Context (Reply)
+                        context = msg.get("context")
+                        if context:
+                            reply_to_wamid = context.get("id")
 
                         # Check if message already exists (idempotency)
                         exists_query = select(Message).where(Message.wamid == wamid)
                         exists_result = await db.execute(exists_query)
                         if exists_result.scalars().first():
                             continue
+
+                        if msg_type == "text":
+                            content = msg.get("text", {}).get("body")
+                        elif msg_type in ["image", "video", "audio", "document", "sticker", "voice"]:
+                            media_info = msg.get(msg_type, {})
+                            meta_media_id = media_info.get("id")
+                            mime_type = media_info.get("mime_type")
+                            caption = media_info.get("caption")
+                            media_type = mime_type
+
+                            if meta_media_id:
+                                try:
+                                    meta_client = MetaClient(tenant.token, tenant.phone_number_id)
+                                    download_url = await meta_client.get_media_url(meta_media_id)
+                                    
+                                    if download_url:
+                                        async with meta_client.get_media_stream(download_url) as stream:
+                                            if stream:
+                                                # Determine extension
+                                                ext = mime_type.split("/")[-1] if mime_type else "bin"
+                                                if ";" in ext: ext = ext.split(";")[0]
+                                                
+                                                # Create object name: {tenant_id}/{year}/{month}/{media_id}.{ext}
+                                                now = datetime.utcnow()
+                                                object_name = f"{tenant.id}/{now.year}/{now.month:02d}/{meta_media_id}.{ext}"
+                                                
+                                                wrapped_stream = AsyncIteratorToFileLike(stream)
+                                                media_url = await storage_service.upload_stream(
+                                                    wrapped_stream, 
+                                                    object_name, 
+                                                    mime_type
+                                                )
+                                except Exception as e:
+                                    logger.error(f"Error processing media {meta_media_id}: {e}")
+                                    content = f"Error processing media: {e}"
+
+                        else:
+                            # Store JSON for other types
+                            content = json.dumps(msg)
 
                         new_message = Message(
                             tenant_id=tenant.id,
@@ -79,7 +129,12 @@ class WebhookService:
                             direction="inbound",
                             type=msg_type,
                             status="received",
-                            content=content
+                            content=content,
+                            media_url=media_url,
+                            media_type=media_type,
+                            caption=caption,
+                            meta_media_id=meta_media_id,
+                            reply_to_wamid=reply_to_wamid
                         )
                         db.add(new_message)
                         logger.info(f"Received new message {wamid} from {from_number}")

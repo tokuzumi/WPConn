@@ -30,6 +30,17 @@ class Message(Base):
     type = Column(String, nullable=False)
     status = Column(String, nullable=False)
     content = Column(Text, nullable=True)
+    
+    # Media fields
+    media_url = Column(String, nullable=True)
+    media_type = Column(String, nullable=True)
+    caption = Column(Text, nullable=True)
+    caption = Column(Text, nullable=True)
+    meta_media_id = Column(String, index=True, nullable=True)
+    
+    # Context
+    reply_to_wamid = Column(String, index=True, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
