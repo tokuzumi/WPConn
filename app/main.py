@@ -4,11 +4,13 @@ from sqlalchemy import text
 from app.db.session import get_db
 from app.api.v1.routers import tenants, messages, webhooks
 
+from app.core.config import settings
+
 app = FastAPI(title="wpp-connect-api")
 
-app.include_router(tenants.router, prefix="/api/v1/tenants", tags=["tenants"])
-app.include_router(messages.router, prefix="/api/v1/messages", tags=["messages"])
-app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["webhooks"])
+app.include_router(tenants.router, prefix=f"{settings.API_V1_STR}/tenants", tags=["tenants"])
+app.include_router(messages.router, prefix=f"{settings.API_V1_STR}/messages", tags=["messages"])
+app.include_router(webhooks.router, prefix=f"{settings.API_V1_STR}/webhooks", tags=["webhooks"])
 
 @app.get("/health")
 async def health_check(db: AsyncSession = Depends(get_db)):
