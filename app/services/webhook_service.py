@@ -2,6 +2,7 @@ import logging
 import json
 from datetime import datetime
 from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import AsyncSessionLocal
 from app.db.models import Tenant, Message
 from app.services.storage_service import StorageService
@@ -58,7 +59,6 @@ class WebhookService:
 
                 # Process Messages
                 if "messages" in value:
-                    storage_service = StorageService()
                     
                     for msg in value["messages"]:
                         wamid = msg.get("id")
@@ -71,6 +71,7 @@ class WebhookService:
                         caption = None
                         meta_media_id = None
                         reply_to_wamid = None
+                        status = "received"
                         
                         # Extract Context (Reply)
                         context = msg.get("context")
@@ -91,33 +92,11 @@ class WebhookService:
                             mime_type = media_info.get("mime_type")
                             caption = media_info.get("caption")
                             media_type = mime_type
-
-                            if meta_media_id:
-                                try:
-                                    meta_client = MetaClient(tenant.token, tenant.phone_number_id)
-                                    download_url = await meta_client.get_media_url(meta_media_id)
-                                    
-                                    if download_url:
-                                        async with meta_client.get_media_stream(download_url) as stream:
-                                            if stream:
-                                                # Determine extension
-                                                ext = mime_type.split("/")[-1] if mime_type else "bin"
-                                                if ";" in ext: ext = ext.split(";")[0]
-                                                
-                                                # Create object name: {tenant_id}/{year}/{month}/{media_id}.{ext}
-                                                now = datetime.utcnow()
-                                                object_name = f"{tenant.id}/{now.year}/{now.month:02d}/{meta_media_id}.{ext}"
-                                                
-                                                wrapped_stream = AsyncIteratorToFileLike(stream)
-                                                media_url = await storage_service.upload_stream(
-                                                    wrapped_stream, 
-                                                    object_name, 
-                                                    mime_type
-                                                )
-                                except Exception as e:
-                                    logger.error(f"Error processing media {meta_media_id}: {e}")
-                                    content = f"Error processing media: {e}"
-
+                            
+                            # Media Offloading: Do NOT download here.
+                            # Set status to media_pending
+                            status = "media_pending"
+                            
                         else:
                             # Store JSON for other types
                             content = json.dumps(msg)
@@ -128,7 +107,7 @@ class WebhookService:
                             phone=from_number,
                             direction="inbound",
                             type=msg_type,
-                            status="received",
+                            status=status,
                             content=content,
                             media_url=media_url,
                             media_type=media_type,
@@ -137,9 +116,68 @@ class WebhookService:
                             reply_to_wamid=reply_to_wamid
                         )
                         db.add(new_message)
-                        logger.info(f"Received new message {wamid} from {from_number}")
+                        logger.info(f"Received new message {wamid} from {from_number} (Status: {status})")
 
                 await db.commit()
 
         except Exception as e:
             logger.error(f"Error processing webhook payload: {e}")
+            raise e
+
+    async def process_media(self, message: Message, db: AsyncSession):
+        """
+        Process media for a message in 'media_pending' status.
+        Downloads from Meta and uploads to MinIO.
+        """
+        try:
+            if not message.meta_media_id:
+                logger.warning(f"Message {message.id} has no meta_media_id")
+                message.status = "failed"
+                return
+            
+            # Eager load tenant or query it.
+            if not message.tenant:
+                 query = select(Tenant).where(Tenant.id == message.tenant_id)
+                 result = await db.execute(query)
+                 tenant = result.scalars().first()
+                 if not tenant:
+                     logger.error(f"Tenant not found for message {message.id}")
+                     message.status = "failed"
+                     return
+            else:
+                tenant = message.tenant
+
+            meta_client = MetaClient(tenant.token, tenant.phone_number_id)
+            storage_service = StorageService()
+            
+            download_url = await meta_client.get_media_url(message.meta_media_id)
+            
+            if download_url:
+                async with meta_client.get_media_stream(download_url) as stream:
+                    if stream:
+                        # Determine extension
+                        mime_type = message.media_type
+                        ext = mime_type.split("/")[-1] if mime_type else "bin"
+                        if ";" in ext: ext = ext.split(";")[0]
+                        
+                        # Create object name: {tenant_id}/{year}/{month}/{media_id}.{ext}
+                        now = datetime.utcnow()
+                        object_name = f"{tenant.id}/{now.year}/{now.month:02d}/{message.meta_media_id}.{ext}"
+                        
+                        wrapped_stream = AsyncIteratorToFileLike(stream)
+                        media_url = await storage_service.upload_stream(
+                            wrapped_stream, 
+                            object_name, 
+                            mime_type
+                        )
+                        
+                        message.media_url = media_url
+                        message.status = "received"
+                        logger.info(f"Media processed for message {message.id}: {media_url}")
+            else:
+                logger.error(f"Could not get download URL for media {message.meta_media_id}")
+                message.status = "failed"
+
+        except Exception as e:
+            logger.error(f"Error processing media for message {message.id}: {e}")
+            raise e

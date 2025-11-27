@@ -34,29 +34,33 @@ from app.db.session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.log_service import AuditLogger
 
+from app.db.models import WebhookEvent
+
 @router.post("/")
 async def receive_webhook(
     request: Request,
-    background_tasks: BackgroundTasks,
     authorized: bool = Depends(verify_webhook_signature),
     db: AsyncSession = Depends(get_db)
 ):
     try:
         payload = await request.json()
         
-        # Log raw payload
-        await AuditLogger.log(db, "webhook_received", payload)
+        # Log raw payload (AuditLogger might be redundant but keeping for consistency if needed, 
+        # but WebhookEvent is the main storage now. Let's keep it for now or remove if double storage is bad. 
+        # The user said "O endpoint deve APENAS inserir o payload cru...". 
+        # I will keep AuditLogger as it logs to a different table for audit purposes, but maybe it's better to remove to be strictly "APENAS".
+        # Let's remove AuditLogger call here to be fast and atomic on WebhookEvent.)
         
-        service = WebhookService()
-        background_tasks.add_task(service.process_payload, payload)
+        # Create WebhookEvent
+        event = WebhookEvent(payload=payload, status='pending')
+        db.add(event)
+        await db.commit()
         
         return Response(content="EVENT_RECEIVED", status_code=200)
     except Exception as e:
         logger.error(f"Error receiving webhook: {e}")
-        # Log error if possible, though db might be closed or issue might be related to db
-        # We can try logging the error too
-        try:
-             await AuditLogger.log(db, "webhook_error", str(e))
-        except:
-             pass
-        return Response(content="EVENT_RECEIVED", status_code=200)
+        # If DB fails, we return 500 or 200? Meta retries on 500.
+        # If we can't save to DB, we should probably return 500 so Meta retries later.
+        # But the original code returned 200 even on error.
+        # I will return 500 to signal failure to Meta if we can't persist.
+        return Response(content="ERROR_SAVING_EVENT", status_code=500)

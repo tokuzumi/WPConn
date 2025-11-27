@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Text, Enum, Integer
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from app.db.base import Base
+
 class Tenant(Base):
     __tablename__ = "tenants"
 
@@ -35,7 +36,6 @@ class Message(Base):
     media_url = Column(String, index=True, nullable=True)
     media_type = Column(String, nullable=True)
     caption = Column(Text, nullable=True)
-    caption = Column(Text, nullable=True)
     meta_media_id = Column(String, index=True, nullable=True)
     
     # Context
@@ -56,3 +56,14 @@ class AuditLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     tenant = relationship("Tenant", back_populates="audit_logs")
+
+class WebhookEvent(Base):
+    __tablename__ = "webhook_events"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    payload = Column(JSONB, nullable=False)
+    status = Column(Enum('pending', 'processing', 'processed', 'failed', name='webhook_event_status'), default='pending', nullable=False)
+    retry_count = Column(Integer, default=0, nullable=False)
+    error_log = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
