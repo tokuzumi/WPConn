@@ -72,3 +72,29 @@ async def delete_user(
     success = await repo.delete_user(user_id)
     if not success:
         raise HTTPException(status_code=404, detail="User not found")
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+@router.post("/login", response_model=UserResponse)
+async def login(
+    login_data: LoginRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    from app.db.repositories.user_repository import UserRepository
+    repo = UserRepository(db)
+    
+    user = await repo.get_by_email(login_data.email)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Simple password check (plain text for now as per create_user)
+    # TODO: Implement proper hashing verification
+    if user.password_hash != login_data.password:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="User is inactive")
+        
+    return user

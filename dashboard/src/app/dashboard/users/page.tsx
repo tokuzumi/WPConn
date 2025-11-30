@@ -75,7 +75,7 @@ export default function UsersPage() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="px-4 sm:px-6 pb-6 space-y-4 sm:space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold tracking-tight">Usuários</h1>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

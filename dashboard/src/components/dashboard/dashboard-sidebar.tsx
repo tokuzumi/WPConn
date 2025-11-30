@@ -3,9 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Circle } from "lucide-react";
+import { Circle, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sidebarNavItems } from "./sidebar-nav";
+import { useAuth } from "@/context/auth-context";
+import { Button } from "@/components/ui/button";
 
 interface DashboardSidebarProps {
   isMobile?: boolean;
@@ -13,6 +15,7 @@ interface DashboardSidebarProps {
 
 export function DashboardSidebar({ isMobile = false }: DashboardSidebarProps) {
   const pathname = usePathname();
+  const { logout } = useAuth();
 
   return (
     <div
@@ -52,6 +55,17 @@ export function DashboardSidebar({ isMobile = false }: DashboardSidebarProps) {
           })}
         </ul>
       </nav>
+
+      <div className="p-3 border-t mt-auto">
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-x-3.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+          onClick={logout}
+        >
+          <LogOut className="shrink-0 size-4" />
+          Sair
+        </Button>
+      </div>
     </div>
   );
 }

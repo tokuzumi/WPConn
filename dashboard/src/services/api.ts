@@ -136,26 +136,38 @@ export const api = {
         return response.json();
     },
 
-    createUser: async (data: CreateUserData, apiKey: string): Promise<User> => {
-        const response = await fetch(`${API_URL}/users`, {
+    createUser: async (user: CreateUserData, apiKey: string): Promise<User> => {
+        const response = await fetch(`${API_URL}/users/`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "x-api-key": apiKey,
+                "X-API-Key": apiKey,
             },
-            body: JSON.stringify(data),
+            body: JSON.stringify(user),
         });
         if (!response.ok) throw new Error("Failed to create user");
         return response.json();
     },
 
-    deleteUser: async (userId: string, apiKey: string): Promise<void> => {
-        const response = await fetch(`${API_URL}/users/${userId}`, {
+    deleteUser: async (id: string, apiKey: string): Promise<void> => {
+        const response = await fetch(`${API_URL}/users/${id}`, {
             method: "DELETE",
             headers: {
-                "x-api-key": apiKey,
+                "X-API-Key": apiKey,
             },
         });
         if (!response.ok) throw new Error("Failed to delete user");
+    },
+
+    login: async (email: string, password: string): Promise<User> => {
+        const response = await fetch(`${API_URL}/users/login`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email, password }),
+        });
+        if (!response.ok) throw new Error("Invalid credentials");
+        return response.json();
     }
 };
