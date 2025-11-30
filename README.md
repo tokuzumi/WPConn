@@ -21,7 +21,31 @@ WPConn is a high-performance, asynchronous FastAPI backend designed to govern co
 -   **Storage**: MinIO (S3 Compatible)
 -   **HTTP Client**: `httpx` (Async)
 
-## ⚙️ Setup
+## 🚀 Quick Start (Docker)
+
+To run the full project (Dashboard + API + Database) using Docker:
+
+### 1. Start the Backend (API & Database)
+This will start the PostgreSQL database and the FastAPI backend.
+
+```bash
+cd wpp-connect-api
+docker-compose up -d --build
+```
+- **API**: http://localhost:8000
+- **Docs**: http://localhost:8000/docs
+
+### 2. Start the Frontend (Dashboard)
+This will start the Next.js dashboard.
+
+```bash
+cd dashboard
+docker-compose up -d --build
+```
+- **Dashboard**: http://localhost:3000
+- **Login**: `admin` / `admin`
+
+## ⚙️ Manual Setup (Local Development)
 
 ### 1. Prerequisites
 -   Python 3.10+

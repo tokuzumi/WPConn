@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Bell, Menu, LogOut } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Bell, Menu, LogOut, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -16,12 +16,44 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import { DashboardSidebar } from "./dashboard-sidebar";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "../theme-toggle";
+import { useAuth } from "@/context/auth-context";
 
 interface DashboardHeaderProps {
   className?: string;
 }
 
 export function DashboardHeader({ className }: DashboardHeaderProps) {
+  const { logout, user } = useAuth();
+  const [apiStatus, setApiStatus] = useState<"online" | "offline" | "checking">("checking");
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+        // We use the root health endpoint which is usually at /health or /api/v1/health depending on router
+        // In main.py: @app.get("/health") is at root level, NOT under /api/v1 prefix.
+        // Wait, main.py has @app.get("/health").
+        // But the routers are included with prefix /api/v1.
+        // So /health is at http://localhost:8000/health
+
+        // Let's try to fetch the health endpoint.
+        // Since we are in the browser, we need to hit the public URL.
+        const res = await fetch("http://localhost:8000/health");
+        if (res.ok) {
+          setApiStatus("online");
+        } else {
+          setApiStatus("offline");
+        }
+      } catch (error) {
+        setApiStatus("offline");
+      }
+    };
+
+    checkStatus();
+    const interval = setInterval(checkStatus, 30000); // Check every 30s
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <header
       className={cn(
@@ -55,10 +87,18 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
         <div className="flex items-center gap-x-1 md:gap-x-3">
           <div className="hidden md:flex items-center gap-x-2 mr-2">
             <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+              {apiStatus === "online" && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              )}
+              <span className={cn(
+                "relative inline-flex rounded-full h-2.5 w-2.5",
+                apiStatus === "online" ? "bg-green-500" :
+                  apiStatus === "offline" ? "bg-red-500" : "bg-yellow-500"
+              )}></span>
             </span>
-            <span className="text-sm font-medium text-muted-foreground">Status: on-line</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              Status: {apiStatus === "online" ? "on-line" : apiStatus === "offline" ? "off-line" : "verificando..."}
+            </span>
           </div>
           <ThemeToggle />
           <Button variant="ghost" size="icon" className="size-9.5 rounded-full">
@@ -70,21 +110,23 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative size-8 rounded-full">
                 <Avatar className="size-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground">Ad</AvatarFallback>
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {user?.username?.substring(0, 2).toUpperCase() || "AD"}
+                  </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-60" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">Admin</p>
+                  <p className="text-sm font-medium leading-none">{user?.username || "Admin"}</p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    admin@wpconn.com
+                    {user?.username || "admin@wpconn.com"}
                   </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={logout} className="cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Sair</span>
               </DropdownMenuItem>

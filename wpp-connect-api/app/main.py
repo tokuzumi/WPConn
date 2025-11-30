@@ -1,22 +1,30 @@
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from app.db.session import get_db
-from app.api.v1.routers import tenants, messages, webhooks
-
 from app.core.config import settings
 
 app = FastAPI(title="wpp-connect-api")
 
-app.include_router(tenants.router, prefix=f"{settings.API_V1_STR}/tenants", tags=["tenants"])
-app.include_router(messages.router, prefix=f"{settings.API_V1_STR}/messages", tags=["messages"])
-app.include_router(webhooks.router, prefix=f"{settings.API_V1_STR}/webhooks", tags=["webhooks"])
+# Set all CORS enabled origins
+if settings.BACKEND_CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
-from app.api.v1.routers import logs
-app.include_router(logs.router, prefix=f"{settings.API_V1_STR}/logs", tags=["logs"])
+from app.api.v1.routers import tenants, messages, logs, users, dashboard, webhooks
 
-from app.api.v1.routers import users
-app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["users"])
+app.include_router(tenants.router, prefix="/api/v1/tenants", tags=["Tenants"])
+app.include_router(messages.router, prefix="/api/v1/messages", tags=["Messages"])
+app.include_router(logs.router, prefix="/api/v1/logs", tags=["Logs"])
+app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
+app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["Dashboard"])
+app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["Webhooks"])
 
 @app.get("/health")
 async def health_check(db: AsyncSession = Depends(get_db)):

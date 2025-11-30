@@ -57,6 +57,45 @@ export interface CreateUserData {
     role?: string;
 }
 
+export interface KPIData {
+    pending_webhooks: number;
+    error_rate_24h: number;
+    daily_messages: number;
+    active_tenants: number;
+}
+
+export interface HourlyTraffic {
+    hour: string;
+    inbound: number;
+    outbound: number;
+}
+
+export interface MessageStatusDistribution {
+    status: string;
+    count: number;
+}
+
+export interface EventHealth {
+    status: string;
+    count: number;
+}
+
+export interface CriticalError {
+    id: number;
+    tenant_name: string;
+    event: string;
+    detail: string;
+    created_at: string;
+}
+
+export interface DashboardStatsResponse {
+    kpis: KPIData;
+    hourly_traffic: HourlyTraffic[];
+    status_distribution: MessageStatusDistribution[];
+    event_health: EventHealth[];
+    recent_errors: CriticalError[];
+}
+
 export const api = {
     getTenants: async (apiKey: string): Promise<Tenant[]> => {
         const response = await fetch(`${API_URL}/tenants`, {
@@ -168,6 +207,17 @@ export const api = {
             body: JSON.stringify({ email, password }),
         });
         if (!response.ok) throw new Error("Invalid credentials");
+        return response.json();
+    },
+
+    getDashboardStats: async (apiKey: string): Promise<DashboardStatsResponse> => {
+        const response = await fetch(`${API_URL}/dashboard/stats`, {
+            method: "GET",
+            headers: {
+                "x-api-key": apiKey,
+            },
+        });
+        if (!response.ok) throw new Error("Failed to fetch dashboard stats");
         return response.json();
     }
 };

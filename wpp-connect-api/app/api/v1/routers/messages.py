@@ -126,6 +126,13 @@ async def send_message(
             if response:
                  logger.error(f"Unexpected response from Meta: {response}")
             
+            await AuditLogger.log(
+                db, 
+                "message_send_failed", 
+                {"error": f"Meta Error: {response}", "message_id": str(db_message.id)},
+                tenant_id=tenant.id
+            )
+            
     except Exception as e:
         logger.error(f"Failed to send message: {e}")
         db_message.status = "failed"

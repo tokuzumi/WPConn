@@ -14,6 +14,7 @@ class TenantResponse(BaseModel):
     waba_id: str
     phone_number_id: str
     webhook_url: str | None = None
+    api_key: str
     is_active: bool
     created_at: datetime
 

@@ -8,3 +8,4 @@ alembic
 httpx
 aioboto3
 aiofiles
+email-validator

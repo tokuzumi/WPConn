@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     MINIO_USE_SSL: bool = True
 
     API_V1_STR: str = "/api/v1"
+    BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
 
     class Config:
         env_file = ".env"

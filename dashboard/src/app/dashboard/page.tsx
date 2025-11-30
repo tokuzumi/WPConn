@@ -1,16 +1,63 @@
-import { DashboardStats } from "@/components/dashboard/dashboard-stats";
-import { DurationBarChart } from "@/components/dashboard/duration-bar-chart";
-import { SessionsAreaChart } from "@/components/dashboard/sessions-area-chart";
-import { RecentSessionsTable } from "@/components/dashboard/recent-sessions-table";
+"use client";
+
+import { useEffect, useState } from "react";
+import { api, DashboardStatsResponse } from "@/services/api";
+import { KPICards } from "@/components/dashboard/kpi-cards";
+import { TrafficChart } from "@/components/dashboard/traffic-chart";
+import { StatusDonut } from "@/components/dashboard/status-donut";
+import { EventHealthChart } from "@/components/dashboard/event-health-chart";
+import { useAuth } from "@/context/auth-context";
+import { Loader2 } from "lucide-react";
 
 export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStatsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // TODO: Get real API key from auth context or secure storage
+        const apiKey = "your-api-key";
+        const data = await api.getDashboardStats(apiKey);
+        setStats(data);
+      } catch (error) {
+        console.error("Failed to fetch dashboard stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        Falha ao carregar dados do dashboard.
+      </div>
+    )
+  }
+
   return (
-    <div className="px-4 sm:px-6 pb-6 space-y-4 sm:space-y-6">
-      <DashboardStats />
-      <RecentSessionsTable />
-      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
-        <SessionsAreaChart />
-        <DurationBarChart />
+    <div className="flex-1 space-y-4 p-4 pt-1">
+      <KPICards data={stats.kpis} />
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+        <StatusDonut data={stats.status_distribution} />
+        <EventHealthChart data={stats.event_health} />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-1">
+        <TrafficChart data={stats.hourly_traffic} />
       </div>
     </div>
   );
