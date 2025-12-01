@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Plus, Trash2, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,7 +21,7 @@ export default function UsersPage() {
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-    const apiKey = "admin-key";
+    const apiKey = process.env.NEXT_PUBLIC_API_KEY || "admin-key";
 
     useEffect(() => {
         loadUsers();
@@ -86,6 +86,9 @@ export default function UsersPage() {
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Novo Usuário</DialogTitle>
+                            <DialogDescription>
+                                Crie um novo usuário para acessar o dashboard.
+                            </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">
