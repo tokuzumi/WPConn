@@ -44,19 +44,6 @@ services:
       - "traefik.http.services.wpconn-api.loadbalancer.server.port=8000"
 
   # Frontend Dashboard
-  dashboard:
-    container_name: WppConn_Dashboard
-    build:
-      context: ./dashboard
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: https://${DOMAIN_API}/api/v1
-    restart: always
-    environment:
-      - NEXT_PUBLIC_API_URL=https://${DOMAIN_API}/api/v1
-      - NEXTAUTH_URL=https://${DOMAIN_APP}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-    networks:
       - default
       - traefik_public
     labels:

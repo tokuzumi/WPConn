@@ -23,8 +23,7 @@ export default function ConnectionsPage() {
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-    // Hardcoded API Key for now or fetch from Auth Context if we implement user-based keys
-    const apiKey = "admin-key"; // Placeholder
+    const apiKey = process.env.NEXT_PUBLIC_API_KEY || "admin-key";
 
     useEffect(() => {
         loadTenants();

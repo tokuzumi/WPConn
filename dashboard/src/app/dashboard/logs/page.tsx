@@ -16,7 +16,7 @@ export default function LogsPage() {
     const [eventFilter, setEventFilter] = useState("");
     const [activeTab, setActiveTab] = useState("global");
 
-    const apiKey = "admin-key";
+    const apiKey = process.env.NEXT_PUBLIC_API_KEY || "admin-key";
 
     useEffect(() => {
         loadLogs();

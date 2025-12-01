@@ -17,7 +17,7 @@ export default function HistoryPage() {
     const [phoneFilter, setPhoneFilter] = useState("");
     const [activeTab, setActiveTab] = useState("global");
 
-    const apiKey = "admin-key";
+    const apiKey = process.env.NEXT_PUBLIC_API_KEY || "admin-key";
 
     useEffect(() => {
         loadMessages();

@@ -9,13 +9,16 @@ class MessageRepository:
 
     async def get_messages(
         self, 
-        tenant_id: str, 
+        tenant_id: Optional[str] = None, 
         limit: int = 50, 
         offset: int = 0,
         phone: Optional[str] = None,
         search: Optional[str] = None
     ) -> list[Message]:
-        query = select(Message).where(Message.tenant_id == tenant_id)
+        query = select(Message)
+        
+        if tenant_id:
+            query = query.where(Message.tenant_id == tenant_id)
         
         if phone:
             query = query.where(Message.phone.ilike(f"%{phone}%"))

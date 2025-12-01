@@ -161,4 +161,5 @@ async def get_messages(
 ):
     from app.db.repositories.message_repository import MessageRepository
     repo = MessageRepository(db)
-    return await repo.get_messages(tenant.id, limit, offset, phone, search)
+    tenant_id = None if tenant.id == "admin" else str(tenant.id)
+    return await repo.get_messages(tenant_id, limit, offset, phone, search)

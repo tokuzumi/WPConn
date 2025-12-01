@@ -55,4 +55,5 @@ async def get_logs(
     # But `get_current_tenant` enforces a tenant.
     # I'll stick to current tenant for now to be safe, or maybe the dashboard uses a special key.
     
-    return await repo.get_logs(limit, offset, tenant_id=str(tenant.id), event=event)
+    tenant_id = None if tenant.id == "admin" else str(tenant.id)
+    return await repo.get_logs(limit, offset, tenant_id=tenant_id, event=event)

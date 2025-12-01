@@ -7,10 +7,16 @@ from app.db.models import Tenant
 
 api_key_header = APIKeyHeader(name="x-api-key", auto_error=True)
 
+from app.core.config import settings
+
 async def get_current_tenant(
     api_key: str = Security(api_key_header),
     db: AsyncSession = Depends(get_db)
 ) -> Tenant:
+    # Master Key Check (Admin Mode)
+    if api_key == settings.APP_SECRET:
+        return Tenant(id="admin", name="Admin", is_active=True)
+
     repo = TenantRepository(db)
     tenant = await repo.get_by_api_key(api_key)
     
