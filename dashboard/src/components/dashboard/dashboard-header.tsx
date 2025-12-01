@@ -30,15 +30,8 @@ export function DashboardHeader({ className }: DashboardHeaderProps) {
     const checkStatus = async () => {
       try {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
-        // We use the root health endpoint which is usually at /health or /api/v1/health depending on router
-        // In main.py: @app.get("/health") is at root level, NOT under /api/v1 prefix.
-        // Wait, main.py has @app.get("/health").
-        // But the routers are included with prefix /api/v1.
-        // So /health is at http://localhost:8000/health
-
-        // Let's try to fetch the health endpoint.
-        // Since we are in the browser, we need to hit the public URL.
-        const res = await fetch("http://localhost:8000/health");
+        const healthUrl = API_URL.replace('/api/v1', '') + '/health';
+        const res = await fetch(healthUrl);
         if (res.ok) {
           setApiStatus("online");
         } else {
