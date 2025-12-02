@@ -50,6 +50,9 @@ services:
       dockerfile: Dockerfile
     command: python -m app.worker.main
     restart: always
+    deploy:
+      mode: replicated
+      replicas: 4
     depends_on:
       - db
     environment:
