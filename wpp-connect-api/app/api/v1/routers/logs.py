@@ -7,11 +7,13 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
 
+from uuid import UUID
+
 router = APIRouter()
 
 class LogResponse(BaseModel):
     id: int
-    tenant_id: Optional[str] = None # UUID but converted to str
+    tenant_id: Optional[UUID] = None
     event: str
     detail: Optional[str] = None
     created_at: datetime
