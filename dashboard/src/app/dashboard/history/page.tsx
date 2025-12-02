@@ -16,36 +16,27 @@ export default function HistoryPage() {
     const [search, setSearch] = useState("");
     const [phoneFilter, setPhoneFilter] = useState("");
     const [activeTab, setActiveTab] = useState("global");
+    const [page, setPage] = useState(1);
+    const limit = 50;
 
     const apiKey = process.env.NEXT_PUBLIC_API_KEY || "admin-key";
 
     useEffect(() => {
         loadMessages();
-    }, [activeTab]); // Reload when tab changes
+    }, [activeTab, page]);
 
     const loadMessages = async () => {
         setLoading(true);
         try {
-            // If tab is 'global', we ignore phone filter unless explicitly typed in search? 
-            // User asked for "Global | Telefone". 
-            // In "Telefone" tab, we probably want to enforce a phone filter or show a specific UI for it.
-            // For now, I'll keep the filters common but maybe preset them based on tab?
-            // Actually, "Global" implies everything. "Telefone" implies filtering by a specific number.
-
             const params: any = {
-                limit: 50,
+                limit: limit,
+                offset: (page - 1) * limit,
                 search: search || undefined
             };
 
             if (activeTab === "phone" && phoneFilter) {
                 params.phone = phoneFilter;
-            } else if (activeTab === "phone" && !phoneFilter) {
-                // If in phone tab but no phone typed, maybe don't fetch or fetch all?
-                // Let's fetch all but user knows they should type a phone.
             }
-
-            // If user manually typed phone in Global tab, we still respect it if we want, 
-            // but let's stick to the requested UI separation.
 
             const data = await api.getMessages(apiKey, params);
             setMessages(data);
@@ -57,10 +48,13 @@ export default function HistoryPage() {
         }
     };
 
+    const handleNextPage = () => setPage(p => p + 1);
+    const handlePrevPage = () => setPage(p => Math.max(1, p - 1));
+
     return (
         <div className="p-4 pt-1 space-y-4">
 
-            <Tabs defaultValue="global" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs defaultValue="global" value={activeTab} onValueChange={(v) => { setActiveTab(v); setPage(1); }} className="w-full">
                 <TabsList>
                     <TabsTrigger value="global">Global</TabsTrigger>
                     <TabsTrigger value="phone">Por Telefone</TabsTrigger>
@@ -72,7 +66,7 @@ export default function HistoryPage() {
                             placeholder="Buscar conteúdo..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && loadMessages()}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { setPage(1); loadMessages(); } }}
                         />
                     </div>
 
@@ -82,12 +76,12 @@ export default function HistoryPage() {
                                 placeholder="Filtrar por número..."
                                 value={phoneFilter}
                                 onChange={(e) => setPhoneFilter(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && loadMessages()}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { setPage(1); loadMessages(); } }}
                             />
                         </div>
                     )}
 
-                    <Button onClick={loadMessages}>
+                    <Button onClick={() => { setPage(1); loadMessages(); }}>
                         <Search className="mr-2 h-4 w-4" /> Buscar
                     </Button>
                 </div>
@@ -98,6 +92,15 @@ export default function HistoryPage() {
                 <TabsContent value="phone" className="mt-0">
                     <MessagesTable messages={messages} loading={loading} />
                 </TabsContent>
+
+                <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={handlePrevPage} disabled={page === 1 || loading}>
+                        Anterior
+                    </Button>
+                    <Button variant="outline" onClick={handleNextPage} disabled={messages.length < limit || loading}>
+                        Próxima
+                    </Button>
+                </div>
             </Tabs>
         </div>
     );

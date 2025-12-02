@@ -15,42 +15,29 @@ export default function LogsPage() {
     const [loading, setLoading] = useState(false);
     const [eventFilter, setEventFilter] = useState("");
     const [activeTab, setActiveTab] = useState("global");
+    const [page, setPage] = useState(1);
+    const limit = 50;
 
     const apiKey = process.env.NEXT_PUBLIC_API_KEY || "admin-key";
 
     useEffect(() => {
         loadLogs();
-    }, [activeTab]);
+    }, [activeTab, page]);
 
     const loadLogs = async () => {
         setLoading(true);
         try {
             const params: any = {
-                limit: 50,
+                limit: limit,
+                offset: (page - 1) * limit,
                 event: eventFilter || undefined
             };
 
-            // "Logs de Erros" tab
             if (activeTab === "errors") {
-                // We can filter by event name containing "error" or "failed"
-                // Or if the backend supported a 'level' field. 
-                // For now, let's assume we filter events with 'error' or 'failed' in them if the user doesn't type anything.
-                // Or we can just rely on the user typing "error".
-                // But the request said "Logs de Erros: exibe apenas Logs de erro".
-                // I'll add a specific filter param if backend supported it, or just client-side filter?
-                // Backend `get_logs` filters by `event` ILIKE.
-                // I'll set event to "error" if tab is errors and filter is empty.
                 if (!eventFilter) {
-                    params.event = "error"; // Simple heuristic
+                    params.event = "error";
                 }
             }
-
-            // "Telefone" tab - filtering by tenant/phone?
-            // The backend `get_logs` takes `tenant_id`. 
-            // If we want to filter by "Telefone", we'd need to map Phone -> Tenant ID.
-            // That's complex without a lookup.
-            // For now, I'll just show the same logs but maybe the UI implies it.
-            // Or I can add a "Tenant ID" input for the "Telefone" tab.
 
             const data = await api.getLogs(apiKey, params);
             setLogs(data);
@@ -62,10 +49,13 @@ export default function LogsPage() {
         }
     };
 
+    const handleNextPage = () => setPage(p => p + 1);
+    const handlePrevPage = () => setPage(p => Math.max(1, p - 1));
+
     return (
         <div className="p-4 pt-1 space-y-4">
 
-            <Tabs defaultValue="global" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs defaultValue="global" value={activeTab} onValueChange={(v) => { setActiveTab(v); setPage(1); }} className="w-full">
                 <TabsList>
                     <TabsTrigger value="global">Global</TabsTrigger>
                     <TabsTrigger value="phone">Por Telefone</TabsTrigger>
@@ -78,10 +68,10 @@ export default function LogsPage() {
                             placeholder={activeTab === "errors" ? "Filtrar erros..." : "Filtrar por evento..."}
                             value={eventFilter}
                             onChange={(e) => setEventFilter(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && loadLogs()}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { setPage(1); loadLogs(); } }}
                         />
                     </div>
-                    <Button onClick={loadLogs}>
+                    <Button onClick={() => { setPage(1); loadLogs(); }}>
                         <Search className="mr-2 h-4 w-4" /> Buscar
                     </Button>
                 </div>
@@ -95,6 +85,15 @@ export default function LogsPage() {
                 <TabsContent value="errors" className="mt-0">
                     <LogsTable logs={logs} loading={loading} />
                 </TabsContent>
+
+                <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={handlePrevPage} disabled={page === 1 || loading}>
+                        Anterior
+                    </Button>
+                    <Button variant="outline" onClick={handleNextPage} disabled={logs.length < limit || loading}>
+                        Próxima
+                    </Button>
+                </div>
             </Tabs>
         </div>
     );
@@ -117,7 +116,7 @@ function LogsTable({ logs, loading }: { logs: Log[], loading: boolean }) {
                         {logs.map((log) => (
                             <TableRow key={log.id}>
                                 <TableCell className="whitespace-nowrap">
-                                    {new Date(log.created_at).toLocaleString()}
+                                    {new Date(log.created_at.endsWith("Z") ? log.created_at : log.created_at + "Z").toLocaleString()}
                                 </TableCell>
                                 <TableCell className="font-medium">{log.event}</TableCell>
                                 <TableCell className="max-w-[400px] truncate" title={log.detail}>
