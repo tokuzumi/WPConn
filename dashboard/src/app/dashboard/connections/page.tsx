@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
 import { Plus, Trash2, Edit } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,6 +35,7 @@ export default function ConnectionsPage() {
     const [editPhoneId, setEditPhoneId] = useState("");
     const [editToken, setEditToken] = useState("");
     const [editWebhook, setEditWebhook] = useState("");
+    const [editIsActive, setEditIsActive] = useState(true);
 
     const apiKey = process.env.NEXT_PUBLIC_API_KEY || "admin-key";
 
@@ -87,6 +89,7 @@ export default function ConnectionsPage() {
         setEditPhoneId(tenant.phone_number_id);
         setEditToken(""); // Don't show existing token for security, only allow overwrite
         setEditWebhook(tenant.webhook_url || "");
+        setEditIsActive(tenant.is_active);
         setIsSheetOpen(true);
     };
 
@@ -98,7 +101,8 @@ export default function ConnectionsPage() {
                 waba_id: editWabaId,
                 phone_number_id: editPhoneId,
                 token: editToken || undefined, // Only send if not empty
-                webhook_url: editWebhook
+                webhook_url: editWebhook,
+                is_active: editIsActive
             }, apiKey);
 
             toast.success("Connection updated");
@@ -177,6 +181,15 @@ export default function ConnectionsPage() {
                         </SheetDescription>
                     </SheetHeader>
                     <div className="space-y-4 py-4 mt-4">
+                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                            <div className="space-y-0.5">
+                                <Label>Status Ativo</Label>
+                                <div className="text-[0.8rem] text-muted-foreground">
+                                    Desative para parar de processar mensagens.
+                                </div>
+                            </div>
+                            <Switch checked={editIsActive} onCheckedChange={setEditIsActive} />
+                        </div>
                         <div className="space-y-2">
                             <Label>Nome</Label>
                             <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Ex: Vendas" />

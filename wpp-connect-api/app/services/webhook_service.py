@@ -5,9 +5,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import AsyncSessionLocal
 from app.db.models import Tenant, Message
-from app.services.storage_service import StorageService
 from app.services.meta_client import MetaClient
-from app.core.utils import AsyncIteratorToFileLike
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +125,8 @@ class WebhookService:
     async def process_media(self, message: Message, db: AsyncSession):
         """
         Process media for a message in 'media_pending' status.
-        Downloads from Meta and uploads to MinIO.
+        Fetches the download URL from Meta and saves it directly.
+        Does NOT download the binary content to MinIO.
         """
         try:
             if not message.meta_media_id:
@@ -148,32 +147,15 @@ class WebhookService:
                 tenant = message.tenant
 
             meta_client = MetaClient(tenant.token, tenant.phone_number_id)
-            storage_service = StorageService()
             
+            # Fetch URL from Meta
             download_url = await meta_client.get_media_url(message.meta_media_id)
             
             if download_url:
-                async with meta_client.get_media_stream(download_url) as stream:
-                    if stream:
-                        # Determine extension
-                        mime_type = message.media_type
-                        ext = mime_type.split("/")[-1] if mime_type else "bin"
-                        if ";" in ext: ext = ext.split(";")[0]
-                        
-                        # Create object name: {tenant_id}/{year}/{month}/{media_id}.{ext}
-                        now = datetime.utcnow()
-                        object_name = f"{tenant.id}/{now.year}/{now.month:02d}/{message.meta_media_id}.{ext}"
-                        
-                        wrapped_stream = AsyncIteratorToFileLike(stream)
-                        media_url = await storage_service.upload_stream(
-                            wrapped_stream, 
-                            object_name, 
-                            mime_type
-                        )
-                        
-                        message.media_url = media_url
-                        message.status = "received"
-                        logger.info(f"Media processed for message {message.id}: {media_url}")
+                # Save Meta URL directly
+                message.media_url = download_url
+                message.status = "received"
+                logger.info(f"Media URL fetched for message {message.id}: {download_url}")
             else:
                 logger.error(f"Could not get download URL for media {message.meta_media_id}")
                 message.status = "failed"

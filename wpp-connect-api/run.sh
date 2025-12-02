@@ -4,6 +4,6 @@
 echo "Running database migrations..."
 alembic upgrade head
 
-# Inicia a aplicação
-echo "Starting application..."
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*'
+# Inicia a aplicação com Gunicorn (8 Workers para 8 vCPUs)
+echo "Starting application with Gunicorn..."
+gunicorn app.main:app --workers 8 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --forwarded-allow-ips '*'

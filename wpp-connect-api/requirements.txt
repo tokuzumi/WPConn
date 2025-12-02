@@ -9,3 +9,4 @@ httpx
 aioboto3
 aiofiles
 email-validator
+gunicorn
