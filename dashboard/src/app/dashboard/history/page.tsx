@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Eye, Search } from "lucide-react";
+import { Eye, Search, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 
 export default function HistoryPage() {
@@ -188,9 +188,10 @@ function MessagesTable({ messages, loading, onViewDetails }: { messages: Message
                                 </TableCell>
                                 <TableCell>{msg.phone}</TableCell>
                                 <TableCell>
-                                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${msg.direction === 'inbound' ? "bg-green-100 text-green-800 border border-green-200" : "bg-blue-100 text-blue-800 border border-blue-200"}`}>
+                                    <div className={`flex items-center gap-1 text-sm font-medium ${msg.direction === 'inbound' ? "text-green-600" : "text-blue-600"}`}>
+                                        {msg.direction === 'inbound' ? <ArrowDown className="h-4 w-4" /> : <ArrowUp className="h-4 w-4" />}
                                         {msg.direction === 'inbound' ? "Recebida" : "Enviada"}
-                                    </span>
+                                    </div>
                                 </TableCell>
                                 <TableCell>{msg.type}</TableCell>
                                 <TableCell className="max-w-[300px]" title={msg.content || ""}>
