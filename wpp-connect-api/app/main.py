@@ -12,7 +12,7 @@ app = FastAPI(title="wpp-connect-api")
 # Configuração CORS Permissiva (Produção)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+    allow_origin_regex=r"^https://.*\.talkingcar\.com\.br$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
