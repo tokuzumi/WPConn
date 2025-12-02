@@ -19,6 +19,11 @@ services:
       context: ./wpp-connect-api
       dockerfile: Dockerfile
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
     depends_on:
       - db
     environment:
@@ -53,6 +58,10 @@ services:
     deploy:
       mode: replicated
       replicas: 2
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
     depends_on:
       - db
     environment:
