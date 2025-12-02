@@ -58,28 +58,18 @@ async def send_message(
 
                 # Check if URL is public (http/https) or internal (MinIO)
                 if media_url.startswith("http"):
-                    # Public URL: Download and stream to Meta
-                    import httpx
-                    async with httpx.AsyncClient() as client:
-                        async with client.stream("GET", media_url) as response:
-                            if response.status_code == 200:
-                                # We need to pass the stream to upload_media
-                                # Note: upload_media expects a file-like object or bytes.
-                                # httpx stream yields bytes. We might need to read it all into memory 
-                                # if upload_media doesn't support async generator.
-                                # For simplicity and robust testing, let's read it.
-                                # (Limit size in production, but fine for test)
-                                file_content = await response.aread()
-                                meta_media_id = await meta_client.upload_media(file_content, mime_type)
-                            else:
-                                raise HTTPException(status_code=400, detail=f"Failed to download media from URL: {response.status_code}")
+                    # Public URL: Use 'link' parameter directly.
+                    # We do NOT download or upload to Meta.
+                    # Meta will download it from the link.
+                    logger.info(f"Public URL detected: {media_url}. Using 'link' strategy.")
+                    meta_media_id = None 
                 else:
                     # MinIO Path
                     stream = await storage_service.get_stream(media_url)
                     meta_media_id = await meta_client.upload_media(stream, mime_type)
-                
-                if not meta_media_id:
-                    raise HTTPException(status_code=500, detail="Failed to upload media to Meta")
+                    
+                    if not meta_media_id:
+                        raise HTTPException(status_code=500, detail="Failed to upload media to Meta")
                     
             except Exception as e:
                 logger.error(f"Error uploading media: {e}")
@@ -113,7 +103,11 @@ async def send_message(
 
     if media_type:
         payload["type"] = media_type
-        payload[media_type] = {"id": meta_media_id}
+        if meta_media_id:
+            payload[media_type] = {"id": meta_media_id}
+        elif media_url and media_url.startswith("http"):
+            payload[media_type] = {"link": media_url}
+        
         if caption:
             payload[media_type]["caption"] = caption
     else:
