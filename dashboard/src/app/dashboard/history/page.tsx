@@ -122,7 +122,7 @@ function MessagesTable({ messages, loading }: { messages: Message[], loading: bo
                         {messages.map((msg) => (
                             <TableRow key={msg.id}>
                                 <TableCell className="whitespace-nowrap">
-                                    {new Date(msg.created_at).toLocaleString()}
+                                    {new Date(msg.created_at.endsWith("Z") ? msg.created_at : msg.created_at + "Z").toLocaleString()}
                                 </TableCell>
                                 <TableCell>{msg.phone}</TableCell>
                                 <TableCell>
