@@ -104,7 +104,7 @@ export interface DashboardStatsResponse {
 
 export const api = {
     getTenants: async (apiKey: string): Promise<Tenant[]> => {
-        const response = await fetch(`${API_URL}/tenants`, {
+        const response = await fetch(`${API_URL}/tenants/`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -115,7 +115,7 @@ export const api = {
     },
 
     createTenant: async (data: CreateTenantData, apiKey: string): Promise<Tenant> => {
-        const response = await fetch(`${API_URL}/tenants`, {
+        const response = await fetch(`${API_URL}/tenants/`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -144,7 +144,7 @@ export const api = {
         if (params?.limit) query.append("limit", params.limit.toString());
         if (params?.offset) query.append("offset", params.offset.toString());
 
-        const response = await fetch(`${API_URL}/messages?${query.toString()}`, {
+        const response = await fetch(`${API_URL}/messages/?${query.toString()}`, {
             method: "GET",
             headers: {
                 "x-api-key": apiKey,
@@ -160,7 +160,7 @@ export const api = {
         if (params?.limit) query.append("limit", params.limit.toString());
         if (params?.offset) query.append("offset", params.offset.toString());
 
-        const response = await fetch(`${API_URL}/logs?${query.toString()}`, {
+        const response = await fetch(`${API_URL}/logs/?${query.toString()}`, {
             method: "GET",
             headers: {
                 "x-api-key": apiKey,
@@ -171,7 +171,7 @@ export const api = {
     },
 
     getUsers: async (apiKey: string): Promise<User[]> => {
-        const response = await fetch(`${API_URL}/users`, {
+        const response = await fetch(`${API_URL}/users/`, {
             method: "GET",
             headers: {
                 "x-api-key": apiKey,
