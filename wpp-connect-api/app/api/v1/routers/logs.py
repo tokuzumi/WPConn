@@ -56,4 +56,9 @@ async def get_logs(
     # I'll stick to current tenant for now to be safe, or maybe the dashboard uses a special key.
     
     tenant_id = None if tenant.id == "admin" else str(tenant.id)
-    return await repo.get_logs(limit, offset, tenant_id=tenant_id, event=event)
+    try:
+        return await repo.get_logs(limit, offset, tenant_id=tenant_id, event=event)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal Error: {str(e)}")
